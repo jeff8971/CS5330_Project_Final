@@ -70,16 +70,19 @@ tracker = cv2.TrackerKCF_create()
 video_capture = cv2.VideoCapture(0)
 font = cv2.FONT_HERSHEY_SIMPLEX
 cv2.namedWindow('window_frame')
-emotion_window = []
-last_display_time = datetime.now()
 bbox = None
+
+# Video recording variables
+record_flag = False
+video_writer = None
+start_time = None
 
 while True:
     ret, frame = video_capture.read()
     if not ret:
         break
 
-    frame = cv2.flip(frame, 1)  # Horizontal flip
+    frame = cv2.flip(frame, 1)
     if bbox is not None:
         # Use KCF Tracker
         ok, bbox = tracker.update(frame)
@@ -98,29 +101,41 @@ while True:
             bbox = (x, y, w, h)
             tracker.init(frame, bbox)
 
-            # Ensure coordinates and dimensions are integers
-            if y + h > 0 and x + w > 0:
-                face = frame[y:y + h, x:x + w]
-                face_gray = cv2.cvtColor(face, cv2.COLOR_BGR2GRAY)  # Convert to grayscale
-                face_resized = cv2.resize(face_gray, (48, 48), interpolation=cv2.INTER_AREA)
-                face_preprocessed = preprocess_input(np.array(face_resized, dtype=np.float32)).reshape(1, 1, 48, 48)
-                face_tensor = torch.from_numpy(face_preprocessed).type(torch.FloatTensor)
+    if bbox is not None and w > 0 and h > 0:
+        face = frame[y:y + h, x:x + w]
+        face_gray = cv2.cvtColor(face, cv2.COLOR_BGR2GRAY)
+        face_resized = cv2.resize(face_gray, (48, 48), interpolation=cv2.INTER_AREA)
+        face_preprocessed = preprocess_input(np.array(face_resized, dtype=np.float32)).reshape(1, 1, 48, 48)
+        face_tensor = torch.from_numpy(face_preprocessed).type(torch.FloatTensor)
 
-                with torch.no_grad():
-                    emotion_pred = emotion_classifier(face_tensor)
-                    emotion_arg = torch.argmax(emotion_pred).item()
-                    emotion = emotion_labels[emotion_arg]
-                    cv2.rectangle(frame, (x, y), (x + w, y + h), (84, 255, 159), 2)
-                    cv2.putText(frame, emotion, (x, y - 30), font, 0.7, (0, 0, 255), 1, cv2.LINE_AA)
+        with torch.no_grad():
+            emotion_pred = emotion_classifier(face_tensor)
+            emotion_arg = torch.argmax(emotion_pred).item()
+            emotion = emotion_labels[emotion_arg]
+            cv2.putText(frame, emotion, (x, y - 10), font, 0.7, (255, 255, 255), 2, cv2.LINE_AA)
 
+    if record_flag:
+        if video_writer is None:
+            timestamp = datetime.now().strftime("%Y%m%d_%H%M%S")
+            video_writer = cv2.VideoWriter(f'video_{timestamp}.avi', cv2.VideoWriter_fourcc('M','J','P','G'), 10.0, (frame.shape[1], frame.shape[0]))
+            start_time = datetime.now()
+        video_writer.write(frame)
+        if datetime.now() - start_time >= timedelta(seconds=5):
+            record_flag = False
+            video_writer.release()
+            video_writer = None
 
     cv2.imshow('window_frame', frame)
     key = cv2.waitKey(1)
     if key == ord('q'):
         break
+    elif key == ord('r'):
+        record_flag = True
     elif key == ord('s'):
         timestamp = datetime.now().strftime("%Y%m%d_%H%M%S")
         cv2.imwrite(f'screenshot_{timestamp}.png', frame)
 
 video_capture.release()
+if video_writer:
+    video_writer.release()
 cv2.destroyAllWindows()
