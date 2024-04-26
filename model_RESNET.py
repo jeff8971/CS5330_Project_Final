@@ -1,3 +1,15 @@
+#!/usr/bin/env python3
+"""
+Filename: model_RESNET.py
+Author: Yuan Zhao
+Email: zhao.yuan2@northeastern.edu
+Description: This script implements a ResNet model for facial expression recognition. It loads image data with specified transformations,
+             constructs a ResNet architecture, and trains the model using stochastic gradient descent. The training and validation
+             progress is monitored with loss and accuracy metrics, and the model state is saved upon completion. The script is
+             configured to run on the CPU and uses a custom data loading strategy for handling image datasets.
+Date: 2024-04-09
+"""
+
 import torch
 import torch.nn as nn
 import torch.optim as optim

@@ -1,5 +1,12 @@
-# separate the emotion data and the pixels data from the train.csv file
-# and save them as emotion.csv and pixels.csv respectively
+#!/usr/bin/env python3
+"""
+Filename: csv_separate.py
+Author: Yuan Zhao
+Email: zhao.yuan2@northeastern.edu
+Description: This file is used to separate the emotion data and the pixels data from the train.csv file
+             and save them as emotion.csv and pixels.csv respectively.
+Date: 2024-04-09
+"""
 
 import pandas as pd
 

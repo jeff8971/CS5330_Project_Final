@@ -1,3 +1,16 @@
+#!/usr/bin/env python3
+"""
+Filename: model_CNN.py
+Author: Yuan Zhao
+Email: zhao.yuan2@northeastern.edu
+Description: This script defines and trains a convolutional neural network (CNN) for facial expression recognition. It includes
+             the entire pipeline from loading and preprocessing image data to training the model and validating its performance.
+             The script leverages PyTorch for model construction and training, and utilizes custom data loaders for managing
+             image datasets.
+Date: 2024-04-09
+"""
+
+
 import torch
 import torch.utils.data as data
 import torch.nn as nn

@@ -1,4 +1,14 @@
 # -*- coding: utf-8 -*-
+
+"""
+Filename: test_MTCNN_CNN.py
+Author: Yuan Zhao
+Email: zhao.yuan2@northeastern.edu
+Description: This script leverages the MTCNN for real-time face detection and a custom CNN model for emotion recognition from video streams.
+             It features live emotion classification, the ability to record segments of the video, and real-time tracking of facial features using OpenCV's KCF tracker.
+Date: 2024-04-09
+"""
+
 import cv2
 import torch
 import torch.nn as nn

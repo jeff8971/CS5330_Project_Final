@@ -1,3 +1,16 @@
+#!/usr/bin/env python3
+"""
+Filename: model_VGG.py
+Author: Yuan Zhao
+Email: zhao.yuan2@northeastern.edu
+Description: This script implements a VGG-like convolutional neural network for facial expression recognition.
+             It prepares the image data with specific transformations, constructs the VGG model, and trains it
+             using stochastic gradient descent with a momentum. The script evaluates both training and validation
+             performance, updates the model weights, and saves the trained model. Configured for CPU, this script
+             is intended for use with facial image datasets organized in specified directory paths.
+Date: 2024-04-09
+"""
+
 import torch
 import torch.nn as nn
 import torch.optim as optim
