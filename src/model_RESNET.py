@@ -3,7 +3,7 @@
 Filename: model_RESNET.py
 Author: Yuan Zhao
 Email: zhao.yuan2@northeastern.edu
-Description: This script implements a ResNet model for facial expression recognition. It includes loading image data with transformations,
+Description: This script implements a ResNet model for facial expression recognition. It includes functions for loading image data with transformations,
              constructing a ResNet architecture, training the model with stochastic gradient descent, and monitoring training and validation
              progress with loss and accuracy metrics. The model state is saved upon completion. The script runs on the CPU and uses a custom
              data loading strategy for image datasets.
@@ -18,48 +18,45 @@ import torchvision.transforms as transforms
 from tqdm import tqdm
 import torch.nn.functional as F
 
-# Constants
-BATCH_SIZE = 128
-LEARNING_RATE = 0.01
-EPOCHS = 60
-DEVICE = torch.device('cpu')
+def setup_constants():
+    global BATCH_SIZE, LEARNING_RATE, EPOCHS, DEVICE
+    BATCH_SIZE = 128
+    LEARNING_RATE = 0.01
+    EPOCHS = 60
+    DEVICE = torch.device('cpu')
 
-# Paths
-TRAIN_PATH = 'face_images/resnet_train_set'
-VALID_PATH = 'face_images/resnet_valid_set'
+def setup_paths():
+    global TRAIN_PATH, VALID_PATH
+    TRAIN_PATH = 'face_images/resnet_train_set'
+    VALID_PATH = 'face_images/resnet_valid_set'
 
-# Transforms
-transforms_train = transforms.Compose([
-    transforms.Grayscale(),
-    transforms.RandomHorizontalFlip(),
-    transforms.ColorJitter(brightness=0.5, contrast=0.5),
-    transforms.ToTensor(),
-])
+def setup_transforms():
+    global transforms_train, transforms_valid
+    transforms_train = transforms.Compose([
+        transforms.Grayscale(),
+        transforms.RandomHorizontalFlip(),
+        transforms.ColorJitter(brightness=0.5, contrast=0.5),
+        transforms.ToTensor(),
+    ])
+    transforms_valid = transforms.Compose([
+        transforms.Grayscale(),
+        transforms.ToTensor(),
+    ])
 
-transforms_valid = transforms.Compose([
-    transforms.Grayscale(),
-    transforms.ToTensor(),
-])
-
-# Datasets
-train_dataset = torchvision.datasets.ImageFolder(root=TRAIN_PATH,
-                                                 transform=transforms_train)
-valid_dataset = torchvision.datasets.ImageFolder(root=VALID_PATH,
-                                                 transform=transforms_valid)
-
-# Data loaders
-train_loader = torch.utils.data.DataLoader(dataset=train_dataset,
-                                           batch_size=BATCH_SIZE, shuffle=True)
-valid_loader = torch.utils.data.DataLoader(dataset=valid_dataset,
-                                           batch_size=BATCH_SIZE,
-                                           shuffle=False)
-
+def setup_datasets_and_loaders():
+    train_dataset = torchvision.datasets.ImageFolder(root=TRAIN_PATH,
+                                                     transform=transforms_train)
+    valid_dataset = torchvision.datasets.ImageFolder(root=VALID_PATH,
+                                                     transform=transforms_valid)
+    global train_loader, valid_loader
+    train_loader = torch.utils.data.DataLoader(dataset=train_dataset,
+                                               batch_size=BATCH_SIZE, shuffle=True)
+    valid_loader = torch.utils.data.DataLoader(dataset=valid_dataset,
+                                               batch_size=BATCH_SIZE, shuffle=False)
 
 class ResidualBlock(nn.Module):
-    """Residual Block as used in ResNet architectures."""
-
     def __init__(self, in_channels, out_channels, stride=1, use_1x1conv=False):
-        super(ResidualBlock, self).__init__()
+        super().__init__()
         self.conv1 = nn.Conv2d(in_channels, out_channels, kernel_size=3,
                                padding=1, stride=stride)
         self.conv2 = nn.Conv2d(out_channels, out_channels, kernel_size=3,
@@ -78,9 +75,7 @@ class ResidualBlock(nn.Module):
         out += identity
         return F.relu(out)
 
-
 def make_resnet():
-    """Constructs a ResNet model using predefined Residual blocks."""
     layers = []
     layers.append(nn.Sequential(
         nn.Conv2d(1, 64, kernel_size=7, stride=2, padding=3),
@@ -102,22 +97,15 @@ def make_resnet():
             layers.append(ResidualBlock(in_channels, out_channels))
 
     layers.append(nn.Sequential(
-        GlobalAvgPool2d(),
+        nn.AdaptiveAvgPool2d((1, 1)),
         nn.Flatten(),
         nn.Linear(512, 7)
     ))
 
-    return nn.Sequential(*layers).to(DEVICE)
+    model = nn.Sequential(*layers).to(DEVICE)
+    return model
 
-
-# Model
-model = make_resnet()
-optimizer = optim.SGD(model.parameters(), lr=LEARNING_RATE, momentum=0.9)
-criterion = nn.CrossEntropyLoss()
-
-
-# Training and validation
-def train_epoch(model, device, train_loader, optimizer):
+def train_epoch(model, device, train_loader, optimizer, criterion):
     model.train()
     total_loss = 0
     correct = 0
@@ -139,15 +127,13 @@ def train_epoch(model, device, train_loader, optimizer):
     accuracy = correct / total
     print(f"Training Loss: {avg_loss:.4f}, Accuracy: {accuracy:.4f}")
 
-
-def validate_epoch(model, device, valid_loader):
+def validate_epoch(model, device, valid_loader, criterion):
     model.eval()
     total_loss = 0
     correct = 0
     total = 0
     with torch.no_grad():
-        for images, labels in tqdm(valid_loader, desc="Validating",
-                                   leave=False):
+        for images, labels in tqdm(valid_loader, desc="Validating", leave=False):
             images, labels = images.to(device), labels.to(device)
             outputs = model(images)
             loss = criterion(outputs, labels)
@@ -160,14 +146,19 @@ def validate_epoch(model, device, valid_loader):
     accuracy = correct / total
     print(f"Validation Loss: {avg_loss:.4f}, Accuracy: {accuracy:.4f}")
 
-
 def main():
+    setup_constants()
+    setup_paths()
+    setup_transforms()
+    setup_datasets_and_loaders()
+    model = make_resnet()
+    optimizer = optim.SGD(model.parameters(), lr=LEARNING_RATE, momentum=0.9)
+    criterion = nn.CrossEntropyLoss()
     for epoch in range(1, EPOCHS + 1):
         print(f"Epoch {epoch}/{EPOCHS}")
-        train_epoch(model, DEVICE, train_loader, optimizer)
-        validate_epoch(model, DEVICE, valid_loader)
+        train_epoch(model, DEVICE, train_loader, optimizer, criterion)
+        validate_epoch(model, DEVICE, valid_loader, criterion)
         torch.save(model.state_dict(), 'resnet_model.pth')
-
 
 if __name__ == '__main__':
     main()

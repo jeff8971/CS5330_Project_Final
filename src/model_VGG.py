@@ -18,56 +18,41 @@ import torchvision
 import torchvision.transforms as transforms
 from tqdm import tqdm
 
-# Constants for configuration
-BATCH_SIZE = 128
-LEARNING_RATE = 0.01
-EPOCHS = 60
-DEVICE = torch.device('cpu')
+def initialize_data_loaders(batch_size):
+    """Initializes data loaders for training and validation datasets."""
+    transforms_train = transforms.Compose([
+        transforms.Grayscale(),
+        transforms.RandomHorizontalFlip(),
+        transforms.ColorJitter(brightness=0.5, contrast=0.5),
+        transforms.ToTensor(),
+    ])
 
-# Paths to datasets
-TRAIN_PATH = 'face_images/vgg_train_set'
-VALID_PATH = 'face_images/vgg_valid_set'
+    transforms_valid = transforms.Compose([
+        transforms.Grayscale(),
+        transforms.ToTensor(),
+    ])
 
-# Transformations for image preprocessing
-transforms_train = transforms.Compose([
-    transforms.Grayscale(),
-    transforms.RandomHorizontalFlip(),
-    transforms.ColorJitter(brightness=0.5, contrast=0.5),
-    transforms.ToTensor(),
-])
+    train_dataset = torchvision.datasets.ImageFolder(root='face_images/vgg_train_set', transform=transforms_train)
+    valid_dataset = torchvision.datasets.ImageFolder(root='face_images/vgg_valid_set', transform=transforms_valid)
 
-transforms_valid = transforms.Compose([
-    transforms.Grayscale(),
-    transforms.ToTensor(),
-])
-
-# Loading datasets using ImageFolder
-train_dataset = torchvision.datasets.ImageFolder(root=TRAIN_PATH, transform=transforms_train)
-valid_dataset = torchvision.datasets.ImageFolder(root=VALID_PATH, transform=transforms_valid)
-
-# DataLoader setup
-train_loader = torch.utils.data.DataLoader(dataset=train_dataset, batch_size=BATCH_SIZE, shuffle=True)
-valid_loader = torch.utils.data.DataLoader(dataset=valid_dataset, batch_size=BATCH_SIZE, shuffle=False)
+    train_loader = torch.utils.data.DataLoader(dataset=train_dataset, batch_size=batch_size, shuffle=True)
+    valid_loader = torch.utils.data.DataLoader(dataset=valid_dataset, batch_size=batch_size, shuffle=False)
+    return train_loader, valid_loader
 
 class VGG(nn.Module):
-    """
-    VGG-like network for facial expression recognition.
-    """
+    """VGG-like model for facial expression recognition."""
     def __init__(self, num_classes=7):
         super(VGG, self).__init__()
         self.features = nn.Sequential(
-            # First VGG block
             nn.Conv2d(1, 32, kernel_size=3, padding=1), nn.ReLU(),
             nn.Conv2d(32, 32, kernel_size=3, padding=1), nn.ReLU(),
-            nn.MaxPool2d(kernel_size=2, stride=2),
-            # Second VGG block
+            nn.MaxPool2d(2, 2),
             nn.Conv2d(32, 64, kernel_size=3, padding=1), nn.ReLU(),
             nn.Conv2d(64, 64, kernel_size=3, padding=1), nn.ReLU(),
-            nn.MaxPool2d(kernel_size=2, stride=2),
-            # Third VGG block
+            nn.MaxPool2d(2, 2),
             nn.Conv2d(64, 128, kernel_size=3, padding=1), nn.ReLU(),
             nn.Conv2d(128, 128, kernel_size=3, padding=1), nn.ReLU(),
-            nn.MaxPool2d(kernel_size=2, stride=2)
+            nn.MaxPool2d(2, 2)
         )
         self.classifier = nn.Sequential(
             nn.Dropout(0.5),
@@ -83,19 +68,22 @@ class VGG(nn.Module):
         x = self.classifier(x)
         return x
 
-# Model instantiation
-model = VGG()
-model.to(DEVICE)
+def train_model(model, train_loader, valid_loader, epochs, learning_rate):
+    """Train the VGG model."""
+    optimizer = optim.SGD(model.parameters(), lr=learning_rate, momentum=0.9)
+    criterion = nn.CrossEntropyLoss()
 
-# Optimizer and loss function
-optimizer = optim.SGD(model.parameters(), lr=LEARNING_RATE, momentum=0.9)
-criterion = nn.CrossEntropyLoss()
+    for epoch in range(1, epochs + 1):
+        print(f'Epoch {epoch}/{epochs}')
+        train_epoch(model, train_loader, optimizer, criterion)
+        validate_epoch(model, valid_loader, criterion)
+        if epoch % 10 == 0 or epoch == epochs:
+            torch.save(model.state_dict(), f'model_vgg_epoch_{epoch}.pth')
 
 def train_epoch(model, train_loader, optimizer, criterion):
+    """Train for one epoch."""
     model.train()
-    total_loss = 0
-    correct = 0
-    total = 0
+    total_loss, correct, total = 0, 0, 0
     for images, labels in tqdm(train_loader, desc="Training"):
         images, labels = images.to(DEVICE), labels.to(DEVICE)
         optimizer.zero_grad()
@@ -107,15 +95,12 @@ def train_epoch(model, train_loader, optimizer, criterion):
         _, predicted = outputs.max(1)
         correct += predicted.eq(labels).sum().item()
         total += labels.size(0)
-    avg_loss = total_loss / len(train_loader)
-    accuracy = correct / total
-    print(f'Training - Loss: {avg_loss:.4f}, Accuracy: {accuracy:.4f}')
+    print(f'Training - Loss: {total_loss / len(train_loader):.4f}, Accuracy: {correct / total:.4f}')
 
 def validate_epoch(model, valid_loader, criterion):
+    """Validate after one epoch."""
     model.eval()
-    total_loss = 0
-    correct = 0
-    total = 0
+    total_loss, correct, total = 0, 0, 0
     with torch.no_grad():
         for images, labels in tqdm(valid_loader, desc="Validation"):
             images, labels = images.to(DEVICE), labels.to(DEVICE)
@@ -125,18 +110,13 @@ def validate_epoch(model, valid_loader, criterion):
             _, predicted = outputs.max(1)
             correct += predicted.eq(labels).sum().item()
             total += labels.size(0)
-    avg_loss = total_loss / len(valid_loader)
-    accuracy = correct / total
-    print(f'Validation - Loss: {avg_loss:.4f}, Accuracy: {accuracy:.4f}')
-
-def main():
-    for epoch in range(1, EPOCHS + 1):
-        print(f'Epoch {epoch}/{EPOCHS}')
-        train_epoch(model, train_loader, optimizer, criterion)
-        validate_epoch(model, valid_loader, criterion)
-        # Save the model periodically or after last epoch
-        if epoch == EPOCHS or epoch % 10 == 0:
-            torch.save(model.state_dict(), f'model_vgg_epoch_{epoch}.pth')
+    print(f'Validation - Loss: {total_loss / len(valid_loader):.4f}, Accuracy: {correct / total:.4f}')
 
 if __name__ == '__main__':
-    main()
+    DEVICE = torch.device('cpu')
+    BATCH_SIZE = 128
+    LEARNING_RATE = 0.01
+    EPOCHS = 60
+    train_loader, valid_loader = initialize_data_loaders(BATCH_SIZE)
+    model = VGG().to(DEVICE)
+    train_model(model, train_loader, valid_loader, EPOCHS, LEARNING_RATE)

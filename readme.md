@@ -15,13 +15,14 @@ This repository hosts the CS5330 final project, focusing on advanced image proce
 - `dataset/`: Contains image data used in experiments.
 - `result_img/`: Stores output images from model predictions.
 - `src/`: Source code files for model implementations and testing.
+  - `data_preprocessing.py`: Script for image data processing.
   - `model_CNN.py`: CNN model for training.
   - `model_RESNET.py`: ResNet model for training.
   - `model_VGG.py`: VGG model for training.
   - `test_MTCNN_CNN.py`: application for facial recognition by using CNN 
-    model.
+  model.
   - `test_MTCNN_RESNET.py`: application for facial recognition by using ResNet 
-    model.
+  model.
   - `test_MTCNN_VGG.py`: application for facial recognition by using VGG model.
 
 

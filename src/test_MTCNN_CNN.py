@@ -16,16 +16,17 @@ from facenet_pytorch import MTCNN
 from statistics import mode
 from datetime import datetime, timedelta
 
-# Normalize facial data by mapping pixel values from 0-255 to 0-1
 def preprocess_input(images):
+    """ Normalize facial data by mapping pixel values from 0-255 to 0-1. """
     return images / 255.0
 
 def gaussian_weights_init(m):
+    """ Initialize weights for convolutional layers with Gaussian distribution. """
     if 'Conv' in m.__class__.__name__:
         m.weight.data.normal_(0.0, 0.04)
 
 class FaceCNN(nn.Module):
-    # Initialize network structure
+    """ Custom CNN model for emotion recognition. """
     def __init__(self):
         super(FaceCNN, self).__init__()
         self.conv1 = nn.Sequential(
@@ -69,28 +70,22 @@ class FaceCNN(nn.Module):
         y = self.fc(x)
         return y
 
-# Initialize models
-mtcnn = MTCNN(keep_all=True, device='cpu')
-emotion_classifier = torch.load('./model/model_cnn.pkl', map_location=torch.device('cpu'))
-emotion_labels = {0: 'angry', 1: 'disgust', 2: 'fear', 3: 'happy', 4: 'sad', 5: 'surprise', 6: 'neutral'}
-tracker = cv2.TrackerKCF_create()
+def setup_models_and_tracker():
+    """ Initialize MTCNN for face detection, CNN for emotion classification, and KCF tracker. """
+    mtcnn = MTCNN(keep_all=True, device='cpu')
+    emotion_classifier = torch.load('./model/model_cnn.pkl', map_location=torch.device('cpu'))
+    emotion_labels = {0: 'angry', 1: 'disgust', 2: 'fear', 3: 'happy', 4: 'sad', 5: 'surprise', 6: 'neutral'}
+    tracker = cv2.TrackerKCF_create()
+    return mtcnn, emotion_classifier, emotion_labels, tracker
 
-# Setup video capture
-video_capture = cv2.VideoCapture(0)
-font = cv2.FONT_HERSHEY_SIMPLEX
-cv2.namedWindow('window_frame')
-bbox = None
+def initialize_video_capture():
+    """ Setup video capture for webcam. """
+    video_capture = cv2.VideoCapture(0)
+    cv2.namedWindow('window_frame')
+    return video_capture
 
-# Video recording variables
-record_flag = False
-video_writer = None
-start_time = None
-
-while True:
-    ret, frame = video_capture.read()
-    if not ret:
-        break
-
+def process_frame(frame, bbox, tracker, mtcnn, emotion_classifier, emotion_labels):
+    """ Process each frame for face detection, tracking, and emotion classification. """
     frame = cv2.flip(frame, 1)
     if bbox is not None:
         # Use KCF Tracker
@@ -103,10 +98,8 @@ while True:
         boxes, _ = mtcnn.detect(frame)
         if boxes is not None and len(boxes) > 0:
             bbox = boxes[0]
-            x, y, x2, y2 = bbox
-            w = int(x2 - x)
-            h = int(y2 - y)
-            x, y = int(x), int(y)
+            x, y, x2, y2 = map(int, bbox)
+            w, h = x2 - x, y2 - y
             bbox = (x, y, w, h)
             tracker.init(frame, bbox)
 
@@ -121,30 +114,49 @@ while True:
             emotion_pred = emotion_classifier(face_tensor)
             emotion_arg = torch.argmax(emotion_pred).item()
             emotion = emotion_labels[emotion_arg]
-            cv2.putText(frame, emotion, (x, y - 10), font, 0.7, (255, 255, 255), 2, cv2.LINE_AA)
+            cv2.putText(frame, emotion, (x, y - 10), cv2.FONT_HERSHEY_SIMPLEX, 0.7, (255, 255, 255), 2, cv2.LINE_AA)
+    return frame, bbox
 
-    if record_flag:
-        if video_writer is None:
+def main():
+    mtcnn, emotion_classifier, emotion_labels, tracker = setup_models_and_tracker()
+    video_capture = initialize_video_capture()
+    record_flag = False
+    video_writer = None
+    start_time = None
+    bbox = None
+
+    while True:
+        ret, frame = video_capture.read()
+        if not ret:
+            break
+
+        frame, bbox = process_frame(frame, bbox, tracker, mtcnn, emotion_classifier, emotion_labels)
+
+        if record_flag:
+            if video_writer is None:
+                timestamp = datetime.now().strftime("%Y%m%d_%H%M%S")
+                video_writer = cv2.VideoWriter(f'video_{timestamp}.avi', cv2.VideoWriter_fourcc('M','J','P','G'), 10.0, (frame.shape[1], frame.shape[0]))
+                start_time = datetime.now()
+            video_writer.write(frame)
+            if datetime.now() - start_time >= timedelta(seconds=5):
+                record_flag = False
+                video_writer.release()
+                video_writer = None
+
+        cv2.imshow('window_frame', frame)
+        key = cv2.waitKey(1)
+        if key == ord('q'):
+            break
+        elif key == ord('r'):
+            record_flag = True
+        elif key == ord('s'):
             timestamp = datetime.now().strftime("%Y%m%d_%H%M%S")
-            video_writer = cv2.VideoWriter(f'video_{timestamp}.avi', cv2.VideoWriter_fourcc('M','J','P','G'), 10.0, (frame.shape[1], frame.shape[0]))
-            start_time = datetime.now()
-        video_writer.write(frame)
-        if datetime.now() - start_time >= timedelta(seconds=5):
-            record_flag = False
-            video_writer.release()
-            video_writer = None
+            cv2.imwrite(f'screenshot_{timestamp}.png', frame)
 
-    cv2.imshow('window_frame', frame)
-    key = cv2.waitKey(1)
-    if key == ord('q'):
-        break
-    elif key == ord('r'):
-        record_flag = True
-    elif key == ord('s'):
-        timestamp = datetime.now().strftime("%Y%m%d_%H%M%S")
-        cv2.imwrite(f'screenshot_{timestamp}.png', frame)
+    video_capture.release()
+    if video_writer:
+        video_writer.release()
+    cv2.destroyAllWindows()
 
-video_capture.release()
-if video_writer:
-    video_writer.release()
-cv2.destroyAllWindows()
+if __name__ == '__main__':
+    main()
