@@ -28,7 +28,6 @@ This repository hosts the CS5330 final project, focusing on advanced image proce
 ## Features
 - **Model Implementations**: CNN, ResNet, and VGG models for deep learning based image processing.
 - **Image to CSV Mapping**: Script to map image data to CSV format for easier manipulation.
-- **Test Scripts**: Dedicated scripts for testing each model under different scenarios.
 
 ## Getting Started
 ### Prerequisites

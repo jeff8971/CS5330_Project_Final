@@ -20,32 +20,34 @@ train_path = 'dataset/img/train/'
 valid_path = 'dataset/img/test/'
 data_path = 'dataset/csv/src_csv/fer2013.csv'  # Path to the source CSV file containing image data
 
-def make_dir():
-    """ Create directories for each of the 7 emotion categories in both training and validation datasets. """
-    for emotion in range(7):  # Loop over each emotion category (0 to 6)
-        os.makedirs(os.path.join(train_path, str(emotion)), exist_ok=True)  # Create training directory for each emotion
-        os.makedirs(os.path.join(valid_path, str(emotion)), exist_ok=True)  # Create validation directory for each emotion
+def create_directories(base_path):
+    """Create directories for each of the 7 emotion categories in the specified base path."""
+    for emotion in range(7):  # There are 7 emotions, labeled 0 to 6
+        os.makedirs(os.path.join(base_path, str(emotion)), exist_ok=True)
 
-def save_images():
-    """ Read the CSV file, convert image data from pixels to images, and save them in their respective directories. """
-    df = pd.read_csv(data_path)  # Read the CSV file into a DataFrame
-    train_index, valid_index = [1] * 7, [1] * 7  # Initialize counters for image filenames for both training and validation
+def process_and_save_images():
+    """Read the CSV file, convert pixel data to images, and save them in the respective directories."""
+    df = pd.read_csv(data_path)  # Load image data
+    file_counters = {emotion: 1 for emotion in range(7)}  # Initialize image counters for each emotion
 
-    # Iterate over each row in the DataFrame
     for index, row in df.iterrows():
-        emotion, image_data, usage = row['emotion'], row['pixels'], row['Usage']  # Extract emotion, image data, and usage type
-        image_array = np.array(list(map(int, image_data.split()))).reshape(48, 48)  # Convert pixel string to an array and reshape
-        image = Image.fromarray(image_array).convert('L')  # Convert the array to an 8-bit grayscale image
+        emotion, pixels, usage = row['emotion'], row['pixels'], row['Usage']
+        image_array = np.fromstring(pixels, dtype=int, sep=' ').reshape(48, 48)  # Convert pixel string to numpy array and reshape
+        image = Image.fromarray(image_array).convert('L')  # Convert array to grayscale image
 
-        # Save the image in the appropriate directory based on whether it's for training or validation
-        if usage == 'Training':
-            file_path = os.path.join(train_path, str(emotion), f'{train_index[emotion]}.jpg')  # Define file path for training image
-            train_index[emotion] += 1  # Increment the file name index for the training set
-        else:
-            file_path = os.path.join(valid_path, str(emotion), f'{valid_index[emotion]}.jpg')  # Define file path for validation image
-            valid_index[emotion] += 1  # Increment the file name index for the validation set
-        image.save(file_path)  # Save the image
+        # Determine the directory based on usage and increment the respective counter
+        directory = train_path if usage == 'Training' else valid_path
+        file_path = os.path.join(directory, str(emotion), f'{file_counters[emotion]}.jpg')
+        file_counters[emotion] += 1  # Increment the file name index for the respective emotion and usage
 
-# Execute the directory creation and image saving functions
-make_dir()
-save_images()
+        image.save(file_path)  # Save the image file
+
+def main():
+    # Create directories for training and validation datasets
+    create_directories(train_path)
+    create_directories(valid_path)
+    # Process and save images
+    process_and_save_images()
+
+if __name__ == "__main__":
+    main()
