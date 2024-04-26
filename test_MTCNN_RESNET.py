@@ -1,5 +1,4 @@
-# -*- coding: utf-8 -*-
-
+#!/usr/bin/env python3
 """
 Filename: test_MTCNN_RESNET.py
 Author: Yuan Zhao
