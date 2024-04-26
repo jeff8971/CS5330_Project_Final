@@ -1,20 +1,29 @@
 # CS5330_Project_Final
 
+[Project Repository](https://github.com/jeff8971/CS5330_Project_Final)
+
+[Representation]() 
+
 ## Overview
 This repository hosts the CS5330 final project, focusing on advanced image processing models. The project explores various deep learning models for image analysis tasks, offering an in-depth approach to understanding and manipulating image data.
 
 ## System Environment
 - **IDE**: PyCharm or any preferred Python IDE
-- **Dependencies**: Requires Python libraries listed in `requirements.txt`.
+- Python 3.8+
 
 ## Project Structure
 - `dataset/`: Contains image data used in experiments.
 - `result_img/`: Stores output images from model predictions.
 - `src/`: Source code files for model implementations and testing.
-  - `model_CNN.py`: CNN model for image analysis.
-  - `model_RESNET.py`: Implements the ResNet model.
-  - `model_VGG.py`: VGG model application.
-  - `test_scripts/`: Scripts for testing models with various configurations.
+  - `model_CNN.py`: CNN model for training.
+  - `model_RESNET.py`: ResNet model for training.
+  - `model_VGG.py`: VGG model for training.
+  - `test_MTCNN_CNN.py`: application for facial recognition by using CNN 
+    model.
+  - `test_MTCNN_RESNET.py`: application for facial recognition by using ResNet 
+    model.
+  - `test_MTCNN_VGG.py`: application for facial recognition by using VGG model.
+
 
 ## Features
 - **Model Implementations**: CNN, ResNet, and VGG models for deep learning based image processing.
@@ -23,11 +32,10 @@ This repository hosts the CS5330 final project, focusing on advanced image proce
 
 ## Getting Started
 ### Prerequisites
-- Python 3.8+
 - numpy
+- pandas
 - matplotlib
 - pytorch
-- pandas
 - scikit-learn
 - opencv-python
 - Pillow
