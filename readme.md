@@ -52,3 +52,5 @@ This repository hosts the CS5330 final project, focusing on advanced image proce
 - Run the `src/model_VGG.py` script to train the VGG model.
 - Run the test scripts in the `test_MTCNN_CNN.py` directory to use facial recognition models.
 
+## Acknowledgements
+The author would like to express sincere gratitude to Xiang He for the valuable resources provided through his open-source project on facial expression recognition. The contributions available at \url{https://github.com/hexiang10/facial-expression-recognition} have been instrumental in the advancement of this work. The willingness to share knowledge and tools openly has greatly facilitated the progress of this research.
