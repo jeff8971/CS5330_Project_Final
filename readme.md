@@ -2,7 +2,9 @@
 
 [Project Repository](https://github.com/jeff8971/CS5330_Project_Final)
 
-[Representation]() 
+[Representation - youtube](https://www.youtube.com/watch?v=NXi_vrtzZH0) 
+
+[Dataset](https://drive.google.com/drive/folders/1GO5NR31nbferbJY1SzDsAAzNpvVspgMo?usp=drive_link)
 
 ## Overview
 This repository hosts the CS5330 final project, focusing on advanced image processing models. The project explores various deep learning models for image analysis tasks, offering an in-depth approach to understanding and manipulating image data.
